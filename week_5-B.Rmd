@@ -117,12 +117,34 @@ Finally, use `geom_density` to plot the distributions of two states of your choi
 
 **You should do this in steps. First, create the `draws` object. Second, try to successfully change the format of the dataset. Don't do everything all at once in one long section with many pipes!!**
 
+```{r sc1}
+draws <- simulate_election(n_times = 100) %>%
+  pivot_longer(names_to = "State",
+               values_to = "Trump_Share",
+               cols = everything()) %>%
+  filter(State %in% c("Texas", "Pennsylvania")) %>%
+  ggplot(mapping = aes(x = Trump_Share, fill = State)) + 
+  geom_density(alpha = .5) + 
+  labs(x = "Estimated Share of Votes for Trump", 
+       y = "Density",
+       title = "Share of Votes for Donald Trump")
+draws
+
+```
 
   
 ## Scene 2: Estimating Results from a Single State
 
 In Scene 1, we called this election simulation function a single time. Now, create a new `tibble` called `elections` with one column, `simulations`, that simulates one election in each of 1000 rows. Finally, use this `elections` object to create a column called `pa_win` that uses a `map` function to figure out whether Trump wins Pennsylvania in each of these simulated elections. Once you've verified that works, take the average of the `pa_win` column to see how likely Trump is to win Pennsylvania across all of these simulations.
 
+```{r sc2}
+elections <- tibble(simulations = map(rep(1, 1000), simulate_election),
+                    year = 2020)
+
+elections %>%
+  mutate(pa_win = map_lgl(simulations, ~.$Pennsylvania > 50)) %>%
+  summarize(pa_avg = mean(pa_win))
+```
 
 
 ## Scene 3: Do it again!
@@ -131,6 +153,13 @@ First, repeat Scene 2 to make a column called `oh_win` that uses a `map` functio
 
 Once that is all done, summarise your dataset to estimate the probabilities of (1) winning PA, (2) winning OH, and (3) winning both.
 
+```{r sc3}
+elections %>%
+  mutate(pa_win = map_lgl(simulations, ~.$Pennsylvania > 50),
+         oh_win = map_lgl(simulations, ~.$Ohio > 50),
+         both = pa_win & oh_win) %>%
+  summarize(pa_avg = mean(pa_win))
+```
 
 
 ## Scene 4
